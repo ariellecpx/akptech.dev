@@ -1,0 +1,399 @@
+# Create a robust, minimal-dependency HTML with working table, search, sort, localStorage, and YouTube links.
+html = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minecraft YouTube Video Dashboard</title>
+<style>
+  :root{--bg:#0c1117;--card:#121826;--muted:#8aa0b5;--text:#e7eef5;--border:#1f2a3a;--accent:#5bd6ff;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  .wrap{max-width:1100px;margin:32px auto;padding:0 16px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  header{padding:18px 18px 0}
+  h2{margin:0 0 6px;font-size:22px}
+  .muted{color:var(--muted);font-size:13px}
+  .controls{display:grid;grid-template-columns:1fr auto auto;gap:10px;padding:14px 18px}
+  input[type=text]{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0e1420;color:var(--text);outline:none}
+  button,.chip{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0e1420;color:var(--text);cursor:pointer}
+  table{width:100%;border-collapse:collapse}
+  thead th{position:sticky;top:0;background:#0e1623}
+  th,td{border-bottom:1px solid var(--border);padding:10px 12px;text-align:left;font-size:14px}
+  tbody tr:nth-child(odd){background:#0e1420}
+  tbody tr:hover{background:#131c2b}
+  td.checkbox{width:56px;text-align:center}
+  a.kw{color:var(--accent);text-decoration:none}
+  a.kw:hover{text-decoration:underline}
+  .right{text-align:right}
+  .footer{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+  .pill{border:1px solid var(--border);padding:3px 8px;border-radius:999px}
+</style>
+</head>
+<body>
+<noscript style="color:white;background:#c0392b;padding:12px;display:block;text-align:center">Enable JavaScript to use the dashboard.</noscript>
+<div class="wrap">
+  <div class="card">
+    <header>
+      <h2>Minecraft YouTube Video Dashboard</h2>
+      <div class="muted">Click a <b>Keyword</b> to open YouTube search. Checkboxes save to this browser.</div>
+    </header>
+    <div class="controls">
+      <input id="q" type="text" placeholder="Search by keyword…" />
+      <button id="sortDiff">Sort by Difficulty</button>
+      <div class="chip" id="stats">0 done · 0 total</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:56px">Done</th>
+          <th>Keyword</th>
+          <th class="right">Search Volume</th>
+          <th id="diffHeader" style="cursor:pointer">Difficulty</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="footer">
+      <span class="muted">Tip: Ctrl/Cmd+F also works after filtering.</span>
+      <span id="filtered" class="pill"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// CSV data pasted inline so the app is fully offline.
+const CSV = `keyword,search_volume,difficulty
+minecraft how to enchantment table,49500,20
+minecraft how to update,49500,0
+how to build a house minecraft,45000,15
+how to make nether portal minecraft,45000,8
+how to build castle in minecraft,35000,12
+how to use redstone minecraft,35000,18
+how to make netherite minecraft,35000,18
+how to find diamonds minecraft,35000,10
+how to craft a saddle minecraft,33100,7
+minecraft skin how to make,33100,23
+how to make a saddle in minecraft pc,33100,4
+how to craft a saddle on minecraft pc,33100,9
+how to make a saddle in minecraft,33100,0
+how to make diamond sword minecraft,32000,8
+how to build bridge minecraft,28000,8
+how to make redstone door minecraft,28000,15
+how to tame wolf minecraft,28000,8
+how to make diamond pickaxe minecraft,28000,7
+how to make diamond minecraft,28000,12
+how to make stairs in minecraft,27000,3
+how to craft glass in minecraft,26500,4
+how to make carpet in minecraft,25000,5
+how to build tower minecraft,25000,7
+how to make piston door minecraft,25000,12
+how to breed animals minecraft,25000,6
+how to make diamond armor minecraft,25000,10
+how to make end portal minecraft,25000,15
+how to craft chest minecraft,24500,2
+how to make concrete in minecraft,24000,6
+how to make bow minecraft,24000,5
+how to craft furnace minecraft,23500,3
+how to make wool in minecraft,23000,4
+how to craft door minecraft,22500,2
+minecraft how to farm,22200,11
+how to make smooth stone in minecraft,22200,2
+how to tame cats in minecraft,22200,14
+how to mate horses in minecraft,22200,5
+how to tame a horse in minecraft,22200,9
+how to make a armor stand in minecraft pc,22200,4
+how to make an armour stand in minecraft,22200,9
+how to breed horses in minecraft,22200,8
+how to get obsidian minecraft,22200,3
+how to create obsidian in minecraft,22200,0
+how to befriend a horse in minecraft,22200,10
+how to craft a armor stand in minecraft,22200,6
+how to make roof minecraft,22000,6
+how to make elevator minecraft,22000,14
+how to make wheat farm minecraft,22000,5
+how to make netherite armor minecraft,22000,15
+how to build walls minecraft,21000,4
+how to build underground base minecraft,20000,9
+how to make arrows minecraft,20000,4
+how to make modern house minecraft,19000,11
+how to make paper in minecraft,18100,3
+how to get paper on minecraft,18100,5
+how to make minecraft iron golem,18100,5
+how to get brick minecraft,18100,7
+how to teleport in minecraft,18100,14
+how to create bed in minecraft,18100,12
+how to create a map in minecraft,18100,15
+how to craft bricks in minecraft,18100,5
+how to craft an anvil in minecraft,18100,5
+how to create anvil in minecraft,18100,5
+how to craft a lead in minecraft,18100,3
+how to make a lead in minecraft,18100,5
+how to create paper in minecraft,18100,5
+how to craft a map in minecraft,18100,11
+minecraft how to login,18100,13
+how to teleport people in minecraft,18100,25
+how to build paper minecraft,18100,5
+how to make bricks in minecraft,18100,0
+how to make a n anvil in minecraft,18100,5
+how to build an anvil in minecraft,18100,4
+how to tp in minecraft,18100,14
+how to make anvil in minecraft pc,18100,9
+how to do tp in minecraft,18100,35
+how to craft paper in minecraft,18100,7
+how to make map minecraft,18100,15
+how to build anvil in minecraft,18100,6
+how to craft a bed in minecraft,18100,17
+how to make a lasso in minecraft,18100,7
+how to make a bed in minecraft,18100,13
+how to teleport players in minecraft,18100,13
+how to make an anvil in minecraft,18100,5
+how to make redstone clock minecraft,18000,16
+how to tame parrot minecraft,18000,9
+how to make carrot farm minecraft,18000,4
+how to make shield minecraft,18000,6
+how to enchant armor minecraft,18000,12
+how to make boat minecraft,18000,3
+how to find nether fortress minecraft,18000,12
+how to find stronghold minecraft,18000,9
+how to make automatic farm minecraft,17500,13
+how to make iron golem minecraft,17000,7
+how to make potato farm minecraft,17000,4
+how to breed villagers minecraft,16500,11
+how to make redstone lamp minecraft,16000,8
+how to make bread minecraft,16000,2
+how to make brewing stand minecraft,16000,8
+how to make pressure plate minecraft,15500,5
+how to make cake minecraft,15500,6
+how to tame fox minecraft,15000,10
+how to make crossbow minecraft,15000,9
+how to make emerald minecraft,15000,10
+how to make minecart minecraft,15000,4
+how to find ancient debris minecraft,15000,12
+how to craft a minecraft fence,14800,2
+how to make fences in minecraft pc,14800,9
+minecraft how to craft,14800,61
+how to build fence in minecraft,14800,7
+how to make a bed in minecraft pc,14800,15
+how can you make a torch in minecraft,14800,3
+how to make a book in minecraft,14800,7
+how do you make a torch in minecraft,14800,9
+how to create torch in minecraft,14800,4
+how to get a command block in minecraft,14800,15
+how to create potions in minecraft,14800,20
+how to craft a torch in minecraft,14800,6
+how to make potions in minecraft,14800,20
+how to make snow golem minecraft,14500,4
+how to make tripwire hook minecraft,14000,7
+how to make cookies minecraft,14000,3
+how to make health potion minecraft,14000,6
+how to find village minecraft,14000,6
+how to make dispenser minecraft,13500,6
+how to make pumpkin farm minecraft,13500,5
+how to breed cows minecraft,13000,3
+how to breed sheep minecraft,12500,3
+how to make sugar cane farm minecraft,12000,6
+how to make trident minecraft,12000,12
+how to make leather armor minecraft,12000,4
+how to make gold ingot minecraft,12000,4
+how to make speed potion minecraft,12000,7
+how to make rails minecraft,12000,5
+how to find end city minecraft,12000,14
+minecraft java mods tutorial,12000,18
+how to kill ender dragon minecraft,12000,15
+how to build farm minecraft,12000,7
+how to make melon farm minecraft,11500,5
+how to tame llama minecraft,11000,8
+how to make fishing rod minecraft,11000,3
+how to make iron armor minecraft,11000,5
+how to make iron ingot minecraft,11000,3
+how to cook food minecraft,10500,2
+how to make strength potion minecraft,10000,8
+how to build mob farm minecraft,10000,12
+how to make shears minecraft,9500,2
+how to repair armor minecraft,9500,7
+how to make eye of ender minecraft,9500,9
+how to make invisibility potion minecraft,9000,9
+how to make powered rail minecraft,9000,7
+minecraft java server tutorial,9000,20
+how to make flint and steel minecraft,8500,3
+how to make copper ingot minecraft,8500,5
+how to make elytra work minecraft,8500,12
+how to make bookshelf minecraft,8500,4
+how to build experience farm minecraft,8500,14
+how to make gold armor minecraft,8000,6
+how to make colored glass minecraft,8000,4
+how to make blaze rod minecraft,8000,10
+minecraft bedrock how to make,8000,10
+minecraft java shaders tutorial,8000,15
+how to spawn wither minecraft,8000,12
+how to build pixel art minecraft,8000,11
+minecraft command block tutorial,8000,18
+minecraft 1.21 tutorial,8000,12
+how to decorate house minecraft,8000,9
+how to make steel minecraft,7500,8
+how to make fire resistance potion minecraft,7500,10
+how to make sign minecraft,7500,2
+minecraft mobile tutorial,7500,7
+how to make horse saddle minecraft,7000,6
+how to make ender pearl minecraft,7000,11
+minecraft java commands tutorial,7000,14
+how to make chainmail armor minecraft,6500,8
+how to make night vision potion minecraft,6500,8
+how to make stained clay minecraft,6500,5
+minecraft bedrock redstone tutorial,6500,15
+how to make campfire minecraft,6500,5
+how to make coal minecraft,6000,2
+how to make detector rail minecraft,6000,8
+how to make banner minecraft,6000,6
+minecraft java texture pack tutorial,6000,12
+minecraft switch tutorial beginner,6000,6
+how to make hopper minecraft,6000,6
+how to find slime minecraft,6000,8
+how to build statue minecraft,6000,9
+minecraft worldedit tutorial,6000,20
+minecraft 1.20 new features tutorial,6000,10
+how to make kitchen minecraft,6000,7
+how to make poison potion minecraft,5500,7
+how to make flower pot minecraft,5500,3
+how to make nether brick minecraft,5500,6
+how to make compass minecraft,5500,4
+how to find ocean monument minecraft,5500,9
+how to make bedroom minecraft,5500,6
+how to make water breathing potion minecraft,5000,9
+how to make item frame minecraft,5000,4
+minecraft bedrock commands tutorial,5000,12
+minecraft xbox how to tutorial,5000,8
+how to make sticky piston minecraft,5000,8
+how to build enderman farm minecraft,5000,18
+how to make pool minecraft,5000,4
+how to make jump boost potion minecraft,4500,8
+how to make activator rail minecraft,4500,9
+how to make painting minecraft,4500,3
+minecraft bedrock building tutorial,4500,8
+minecraft ps4 how to tutorial,4500,8
+how to make dropper minecraft,4500,7
+how to make lantern minecraft,4500,3
+how to find desert temple minecraft,4500,7
+minecraft resource pack tutorial,4500,16
+how to make garden minecraft,4500,5
+minecraft bedrock farm tutorial,4000,9
+how to make repeater minecraft,4000,9
+how to make clock minecraft,4000,5
+how to build creeper farm minecraft,4000,15
+minecraft caves and cliffs tutorial,4000,8
+how to make bathroom minecraft,4000,8
+how to change skin in minecraft java,3600,3
+minecraft bedrock survival tutorial,3500,7
+how to make daylight sensor minecraft,3500,8
+how to make slime block minecraft,3500,9
+how to build witch farm minecraft,3500,16
+minecraft datapack tutorial,3500,22
+minecraft nether update tutorial,3500,9
+how to make fountain minecraft,3500,6
+how to make living room minecraft,3500,7
+how to make comparator minecraft,3000,12
+how to make candle minecraft,3000,4
+how to make observer minecraft,2500,10
+how to make spyglass minecraft,2500,7
+minecraft behavior pack tutorial,2500,18
+minecraft function tutorial,2000,25
+minecraft village and pillage tutorial,2000,11
+how to make telescope minecraft,1800,8
+how to jailbreak nintendo switch,1600,8
+how to make bundle minecraft,1500,6
+minecraft custom crafting tutorial,1500,20
+how to change minecraft skin java,1300,2
+how to buy minecraft on pc,880,30
+how to get free games on nintendo switch,720,0
+how to play minecraft for free on pc,320,24
+how to get nintendo switch game vouchers for free,140,0
+how to change minecraft skin bedrock,110,0
+how to change skin in minecraft java tlauncher,50,5
+`;
+
+// CSV -> objects with stable id
+function parseCSV(str) {
+  const [header, ...lines] = str.trim().split(/\r?\n/);
+  return lines.map((line, idx) => {
+    const parts = line.split(',');
+    return { id: idx, keyword: parts[0], searchVolume: +parts[1], difficulty: +parts[2] };
+  });
+}
+
+let rows = parseCSV(CSV);
+let asc = true;
+const lsKey = 'mcChecklist_v3';
+const saved = JSON.parse(localStorage.getItem(lsKey) || '{}'); // {id: true/false}
+
+const $rows = document.getElementById('rows');
+const $q = document.getElementById('q');
+const $stats = document.getElementById('stats');
+const $filtered = document.getElementById('filtered');
+
+function fmt(n){ return n.toLocaleString('en-GB'); }
+
+function render(){
+  const q = $q.value.trim().toLowerCase();
+  const list = rows.filter(r => r.keyword.toLowerCase().includes(q));
+  $rows.innerHTML = '';
+  for(const r of list){
+    const tr = document.createElement('tr');
+
+    const td0 = document.createElement('td');
+    td0.className = 'checkbox';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!saved[r.id];
+    cb.addEventListener('change', ()=>{
+      saved[r.id] = cb.checked;
+      localStorage.setItem(lsKey, JSON.stringify(saved));
+      updateStats();
+    });
+    td0.appendChild(cb);
+
+    const td1 = document.createElement('td');
+    const a = document.createElement('a');
+    a.className = 'kw';
+    a.href = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(r.keyword);
+    a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = r.keyword;
+    td1.appendChild(a);
+
+    const td2 = document.createElement('td');
+    td2.className = 'right';
+    td2.textContent = fmt(r.searchVolume);
+
+    const td3 = document.createElement('td');
+    td3.textContent = r.difficulty;
+
+    tr.append(td0, td1, td2, td3);
+    $rows.appendChild(tr);
+  }
+  $filtered.textContent = q ? `${list.length} shown` : '';
+  updateStats();
+}
+
+function updateStats(){
+  const total = rows.length;
+  const done = Object.values(saved).filter(Boolean).length;
+  $stats.textContent = `${done} done · ${total} total`;
+}
+
+function sortByDiff(){
+  rows.sort((a,b)=> asc ? a.difficulty - b.difficulty : b.difficulty - a.difficulty);
+  asc = !asc;
+  render();
+}
+
+document.getElementById('diffHeader').addEventListener('click', sortByDiff);
+document.getElementById('sortDiff').addEventListener('click', sortByDiff);
+$q.addEventListener('input', render);
+
+render();
+</script>
+</body>
+</html>
+"""
+open("/mnt/data/minecraft_dashboard_stable.html","w",encoding="utf-8").write(html)
+print("Wrote /mnt/data/minecraft_dashboard_stable.html")
