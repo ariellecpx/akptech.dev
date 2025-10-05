@@ -1,0 +1,25 @@
+{
+  "trailingSlash": false,
+  "lowercasePaths": true,
+  "stripParams": [
+    "utm_source","utm_medium","utm_campaign","utm_term","utm_content",
+    "gclid","fbclid","ref","share","replytocom"
+  ],
+  "paramWhitelist": {
+    "/search": ["q"],
+    "/blog": ["page"]
+  },
+  "noindexPaths": ["/admin","/preview","/search"],
+  "allowPaths": ["/*"],
+  "pagination": { "relNextPrev": true },
+  "httpRobotsDirectives": "max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+  "bots": {
+    "allow": ["*"],
+    "ai": {
+      "GPTBot": "allow",
+      "CCBot": "allow",
+      "PerplexityBot": "allow",
+      "Claude-Web": "allow"
+    }
+  }
+}

@@ -603,7 +603,7 @@ function App() {
 
             {/* Rosebud AI */}
             <a 
-              href="https://www.rosebud.app" 
+              href="https://rosebud.ai/?via=apx" 
               target="_blank" 
               rel="noopener noreferrer"
               className="group relative block overflow-hidden rounded-2xl border-2 border-cyan-500/80 bg-black/60 backdrop-blur-sm p-6 shadow-2xl shadow-cyan-500/25 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-500/40"

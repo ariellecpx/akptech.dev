@@ -1,0 +1,10 @@
+{
+  "siteName": "Your Site",
+  "domain": "example.com",
+  "defaultLocale": "en",
+  "locales": ["en"],
+  "brand": { "primary": "#0ea5e9" },
+  "social": { "twitter": "@handle" },
+  "contactEmail": "hello@example.com",
+  "logo": "/favicon.ico"
+}

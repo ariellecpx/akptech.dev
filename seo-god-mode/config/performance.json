@@ -1,0 +1,6 @@
+{
+  "images": { "maxWidth": 1600, "formats": ["image/avif","image/webp"], "quality": 75, "lqip": true },
+  "fonts": { "selfHost": true, "preload": true, "display": "swap" },
+  "cache": { "sMaxage": 86400, "staleWhileRevalidate": 604800 },
+  "priorityHints": true
+}

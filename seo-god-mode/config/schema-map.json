@@ -1,0 +1,7 @@
+{
+  "home": ["Organization","WebSite"],
+  "page": ["BreadcrumbList"],
+  "post": ["BreadcrumbList","Article","FAQPage?","VideoObject?"],
+  "product": ["BreadcrumbList","Product"],
+  "listing": ["BreadcrumbList","ItemList"]
+}

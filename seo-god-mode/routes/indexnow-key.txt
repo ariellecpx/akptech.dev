@@ -1,0 +1,47 @@
+export function generateIndexNowKey(): string {
+  const key = process.env.INDEXNOW_KEY || 'REPLACE_WITH_KEY';
+  return key;
+}
+
+export function indexNowKeyHeaders() {
+  return {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'public, s-maxage=86400'
+  };
+}
+
+export async function pingIndexNow(urls: string[], key?: string): Promise<void> {
+  const indexNowKey = key || process.env.INDEXNOW_KEY;
+  if (!indexNowKey || indexNowKey === 'REPLACE_WITH_KEY') {
+    console.warn('IndexNow key not configured');
+    return;
+  }
+
+  const domain = process.env.SITE_DOMAIN || 'example.com';
+  const host = domain.replace(/^https?:\/\//, '');
+
+  const payload = {
+    host,
+    key: indexNowKey,
+    keyLocation: `https://${host}/.well-known/IndexNowKey`,
+    urlList: urls
+  };
+
+  try {
+    const response = await fetch('https://api.indexnow.org/indexnow', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.error('IndexNow ping failed:', response.status, response.statusText);
+    } else {
+      console.log('IndexNow ping successful for', urls.length, 'URLs');
+    }
+  } catch (error) {
+    console.error('IndexNow ping error:', error);
+  }
+}
